@@ -1,0 +1,78 @@
+export const T = {
+  bg:        "#0D1117",
+  surface:   "#161B22",
+  card:      "#1C2333",
+  cardHover: "#1F2A3C",
+  border:    "#2A3446",
+  borderHi:  "#374458",
+  // Amber — primary brand
+  amber:     "#F59E0B",
+  amberDim:  "#92400E",
+  amberGlow: "rgba(245,158,11,0.12)",
+  amberSoft: "rgba(245,158,11,0.06)",
+  // Emerald — profit/success
+  emerald:   "#10B981",
+  emeraldDim:"#065F46",
+  emeraldBg: "rgba(16,185,129,0.1)",
+  // Crimson — loss/danger
+  crimson:   "#EF4444",
+  crimsonDim:"#7F1D1D",
+  crimsonBg: "rgba(239,68,68,0.1)",
+  // Sky — info/purchase
+  sky:       "#38BDF8",
+  skyDim:    "#0C4A6E",
+  skyBg:     "rgba(56,189,248,0.1)",
+  // Violet — accent secondary
+  violet:    "#A78BFA",
+  violetBg:  "rgba(167,139,250,0.1)",
+  // Text hierarchy
+  t1:        "#F0F4F8",   // headings
+  t2:        "#94A3B8",   // secondary
+  t3:        "#4A5568",   // muted
+  t4:        "#2D3748",   // very muted
+};
+
+export const FONT = {
+  ui:   "'Outfit', system-ui, sans-serif",
+  mono: "'JetBrains Mono', 'Fira Code', monospace",
+};
+
+export const GLOBAL_CSS = `
+  @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: ${T.bg}; color: ${T.t1}; font-family: ${FONT.ui}; }
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: ${T.bg}; }
+  ::-webkit-scrollbar-thumb { background: ${T.border}; border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: ${T.borderHi}; }
+  input[type=number]::-webkit-inner-spin-button,
+  input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
+  input::placeholder, textarea::placeholder { color: ${T.t3}; }
+  select option { background: ${T.card}; color: ${T.t1}; }
+  * { -webkit-tap-highlight-color: transparent; }
+
+  @keyframes fadeUp   { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:none; } }
+  @keyframes fadeIn   { from { opacity:0; } to { opacity:1; } }
+  @keyframes slideRight { from { opacity:0; transform:translateX(-8px); } to { opacity:1; transform:none; } }
+  @keyframes pulse    { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+  @keyframes shimmer  { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+  @keyframes scaleIn  { from { opacity:0; transform:scale(0.96); } to { opacity:1; transform:scale(1); } }
+  @keyframes toastSlide { from { opacity:0; transform:translateX(20px); } to { opacity:1; transform:none; } }
+  @keyframes spinOnce { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+  .page-in  { animation: fadeUp 0.22s ease both; }
+  .modal-in { animation: scaleIn 0.2s cubic-bezier(0.16,1,0.3,1) both; }
+  .toast-in { animation: toastSlide 0.25s cubic-bezier(0.16,1,0.3,1) both; }
+  .row-hover:hover { background: ${T.cardHover} !important; transition: background 0.1s; }
+  .nav-item { transition: all 0.15s; }
+  .nav-item:hover:not(.nav-active) { background: ${T.amberGlow} !important; color: ${T.amber} !important; }
+  .btn-hover { transition: all 0.15s; }
+  .btn-hover:hover:not(:disabled) { filter: brightness(1.12); transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,0,0,0.3); }
+  .btn-hover:active:not(:disabled) { transform: translateY(0); }
+  .card-hover { transition: border-color 0.15s, box-shadow 0.15s; }
+  .card-hover:hover { border-color: ${T.borderHi} !important; box-shadow: 0 0 0 1px ${T.borderHi} !important; }
+
+  .glow-amber { box-shadow: 0 0 20px rgba(245,158,11,0.2), 0 0 40px rgba(245,158,11,0.05); }
+  .glow-emerald { box-shadow: 0 0 20px rgba(16,185,129,0.15); }
+  .glow-crimson { box-shadow: 0 0 20px rgba(239,68,68,0.15); }
+`;
