@@ -2,17 +2,21 @@ import { useState, useMemo } from "react";
 import { T, FONT } from "../../theme";
 import { useStore } from "../../store";
 import { fmt, uid } from "../../utils";
+import { DELIVERY_SLOTS } from "../api/mockDatabase";
+import { assignDeliveryPartner } from "../api/engine";
 
-const STEPS = ["cart", "address", "payment", "confirm", "processing", "success"];
-const STEP_LABELS = { cart: "Review Cart", address: "Delivery Address", payment: "Payment", confirm: "Confirm Order", processing: "Processing", success: "Order Placed" };
+const STEPS = ["address", "delivery", "payment", "confirm", "processing", "success"];
+const STEP_LABELS = { address: "Address", delivery: "Delivery Slot", payment: "Payment", confirm: "Confirm", processing: "Processing", success: "Order Placed" };
 
 export function CheckoutPage({ onBack, onOrderPlaced }) {
     const { cart, saveCart, products, saveProducts, orders, saveOrders, movements, saveMovements, shops } = useStore();
-    const [step, setStep] = useState("address"); // Start at address since cart is already reviewed
+    const [step, setStep] = useState("address");
     const [address, setAddress] = useState({ name: "", phone: "", pincode: "", line1: "", line2: "", city: "Hyderabad", state: "Telangana" });
     const [paymentMethod, setPaymentMethod] = useState("upi");
+    const [deliverySlot, setDeliverySlot] = useState("express");
     const [orderIds, setOrderIds] = useState([]);
     const [errors, setErrors] = useState({});
+    const [stockoutError, setStockoutError] = useState(null);
 
     const safeCart = cart || [];
     const safeProducts = products || [];
@@ -23,7 +27,7 @@ export function CheckoutPage({ onBack, onOrderPlaced }) {
             const shopId = item.listing?.shop_id;
             if (!shopId) return acc;
             if (!acc[shopId]) {
-                acc[shopId] = { shopId, shop: item.listing.shop, items: [], subtotal: 0, shipping: Math.floor(Math.random() * 50) + 30 };
+                acc[shopId] = { shopId, shop: item.listing.shop, items: [], subtotal: 0, deliveryOption: item.deliveryOption || "standard" };
             }
             acc[shopId].items.push(item);
             acc[shopId].subtotal += (item.listing?.selling_price || 0) * item.qty;
@@ -31,9 +35,11 @@ export function CheckoutPage({ onBack, onOrderPlaced }) {
         }, {});
     }, [safeCart]);
 
+    const selectedSlot = DELIVERY_SLOTS.find(s => s.id === deliverySlot) || DELIVERY_SLOTS[0];
     const totalItems = safeCart.reduce((s, i) => s + i.qty, 0);
-    const totalValue = Object.values(cartByShop).reduce((s, g) => s + g.subtotal + g.shipping, 0);
-    const totalShipping = Object.values(cartByShop).reduce((s, g) => s + g.shipping, 0);
+    const totalSubtotal = Object.values(cartByShop).reduce((s, g) => s + g.subtotal, 0);
+    const totalShipping = selectedSlot.fee * Object.keys(cartByShop).length;
+    const totalValue = totalSubtotal + totalShipping;
     const gstInclusive = Math.round((totalValue * 18) / 118);
 
     // Validation
@@ -49,23 +55,36 @@ export function CheckoutPage({ onBack, onOrderPlaced }) {
 
     const handlePlaceOrder = async () => {
         setStep("processing");
+        setStockoutError(null);
 
-        // Simulate payment processing
         await new Promise(r => setTimeout(r, 2000));
 
-        // Re-validate stock
-        let stockIssue = false;
+        // Re-validate stock (stockout race condition)
+        let stockIssue = null;
         safeCart.forEach(item => {
             const p = safeProducts.find(pr => pr.id === item.listing?.product_id && pr.shopId === item.listing?.shop_id);
-            if (!p || p.stock < item.qty) stockIssue = true;
+            if (!p || p.stock < item.qty) {
+                const altShop = safeProducts.find(pr => pr.id === item.listing?.product_id && pr.shopId !== item.listing?.shop_id && pr.stock >= item.qty);
+                stockIssue = {
+                    product: item.product?.name || "Part",
+                    shopName: item.listing?.shop?.name || "Shop",
+                    alternative: altShop ? {
+                        shopId: altShop.shopId,
+                        shopName: (shops || []).find(s => s.id === altShop.shopId)?.name || "Another shop",
+                        price: altShop.sellPrice,
+                        priceDiff: altShop.sellPrice - (item.listing?.selling_price || 0)
+                    } : null
+                };
+            }
         });
 
         if (stockIssue) {
+            setStockoutError(stockIssue);
             setStep("confirm");
             return;
         }
 
-        // Create orders
+        // Create orders per shop
         const newOrders = [...(orders || [])];
         const newMovements = [...(movements || [])];
         const newProducts = [...safeProducts];
@@ -76,15 +95,22 @@ export function CheckoutPage({ onBack, onOrderPlaced }) {
             const orderId = `#ORD-${uid().toUpperCase()}`;
             ids.push(orderId);
             const itemStr = group.items.map(i => `${i.product?.name || "Part"} × ${i.qty}`).join(", ");
+            const deliveryPartner = assignDeliveryPartner(group.shop);
 
             newOrders.push({
                 id: orderId, shopId: group.shopId,
                 customer: address.name, phone: address.phone,
                 address: `${address.line1}, ${address.line2 || ""}, ${address.city} - ${address.pincode}`,
-                items: itemStr, total: group.subtotal + group.shipping,
+                items: itemStr, total: group.subtotal + selectedSlot.fee,
                 status: "NEW", time: now,
                 payment: paymentMethod === "cod" ? "COD" : "Prepaid (Escrow)",
-                vehicle: null
+                vehicle: null,
+                deliverySlot: selectedSlot,
+                deliveryPartner,
+                deliveryFee: selectedSlot.fee,
+                estimatedDelivery: selectedSlot.desc,
+                paymentSettled: false,
+                customerConfirmed: false,
             });
 
             group.items.forEach(ci => {
@@ -120,7 +146,7 @@ export function CheckoutPage({ onBack, onOrderPlaced }) {
     const currentIdx = STEPS.indexOf(step);
     const renderStepper = () => (
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 0, marginBottom: 40 }}>
-            {["address", "payment", "confirm", "success"].map((s, i) => {
+            {["address", "delivery", "payment", "confirm"].map((s, i) => {
                 const sIdx = STEPS.indexOf(s);
                 const isActive = sIdx === currentIdx;
                 const isDone = sIdx < currentIdx;
@@ -140,7 +166,7 @@ export function CheckoutPage({ onBack, onOrderPlaced }) {
                             </div>
                             <div style={{ fontSize: 10, fontWeight: 700, color: isActive ? T.amber : isDone ? T.emerald : T.t3, textTransform: "uppercase", letterSpacing: "0.05em", whiteSpace: "nowrap" }}>{label}</div>
                         </div>
-                        {i < 3 && <div style={{ width: 60, height: 2, background: isDone ? T.emerald : T.border, margin: "0 8px", marginBottom: 20, transition: "all 0.3s" }} />}
+                        {i < 3 && <div style={{ width: 50, height: 2, background: isDone ? T.emerald : T.border, margin: "0 6px", marginBottom: 20, transition: "all 0.3s" }} />}
                     </div>
                 );
             })}
@@ -149,7 +175,7 @@ export function CheckoutPage({ onBack, onOrderPlaced }) {
 
     const fieldStyle = (err) => ({
         width: "100%", padding: "12px 16px", background: T.surface, border: `1.5px solid ${err ? T.crimson : T.border}`,
-        borderRadius: 10, color: T.t1, fontSize: 14, fontFamily: FONT.ui, outline: "none", transition: "border 0.2s"
+        borderRadius: 10, color: T.t1, fontSize: 14, fontFamily: FONT.ui, outline: "none", transition: "border 0.2s", boxSizing: "border-box"
     });
     const labelStyle = { fontSize: 12, fontWeight: 700, color: T.t2, marginBottom: 6, display: "block" };
 
@@ -214,14 +240,57 @@ export function CheckoutPage({ onBack, onOrderPlaced }) {
                             </div>
                         </div>
                         <button
-                            onClick={() => { if (validateAddress()) setStep("payment"); }}
+                            onClick={() => { if (validateAddress()) setStep("delivery"); }}
                             style={{ marginTop: 28, width: "100%", background: T.amber, color: "#000", border: "none", borderRadius: 10, padding: "14px", fontSize: 15, fontWeight: 900, cursor: "pointer", boxShadow: `0 6px 20px ${T.amber}44` }}
                         >
-                            Continue to Payment →
+                            Select Delivery Slot →
                         </button>
                     </div>
+                    {renderOrderSummary()}
+                </div>
+            )}
 
-                    {/* Order Summary Sidebar */}
+            {/* ════════ DELIVERY SLOT STEP ════════ */}
+            {step === "delivery" && (
+                <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 40 }}>
+                    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 28 }}>
+                        <h2 style={{ fontSize: 20, fontWeight: 900, color: T.t1, margin: "0 0 8px" }}>🚚 Choose Delivery Slot</h2>
+                        <p style={{ fontSize: 13, color: T.t3, margin: "0 0 24px" }}>Select when you'd like to receive your parts</p>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                            {DELIVERY_SLOTS.map(slot => (
+                                <label
+                                    key={slot.id}
+                                    onClick={() => setDeliverySlot(slot.id)}
+                                    style={{
+                                        display: "flex", alignItems: "center", gap: 16, padding: "16px 20px",
+                                        background: deliverySlot === slot.id ? `${T.amber}11` : T.surface,
+                                        border: `2px solid ${deliverySlot === slot.id ? T.amber : T.border}`,
+                                        borderRadius: 12, cursor: "pointer", transition: "all 0.15s"
+                                    }}
+                                >
+                                    <div style={{
+                                        width: 22, height: 22, borderRadius: "50%",
+                                        border: `2px solid ${deliverySlot === slot.id ? T.amber : T.t3}`,
+                                        display: "flex", alignItems: "center", justifyContent: "center"
+                                    }}>
+                                        {deliverySlot === slot.id && <div style={{ width: 12, height: 12, borderRadius: "50%", background: T.amber }} />}
+                                    </div>
+                                    <span style={{ fontSize: 22 }}>{slot.icon}</span>
+                                    <div style={{ flex: 1 }}>
+                                        <div style={{ fontSize: 14, fontWeight: 700, color: T.t1 }}>{slot.label}</div>
+                                        <div style={{ fontSize: 12, color: T.t3 }}>{slot.desc}</div>
+                                    </div>
+                                    <div style={{ fontSize: 15, fontWeight: 900, color: slot.fee === 0 ? T.emerald : T.t1, fontFamily: FONT.mono }}>
+                                        {slot.fee === 0 ? "FREE" : `₹${slot.fee}`}
+                                    </div>
+                                </label>
+                            ))}
+                        </div>
+                        <div style={{ display: "flex", gap: 12, marginTop: 28 }}>
+                            <button onClick={() => setStep("address")} style={{ flex: 1, background: T.surface, border: `1px solid ${T.border}`, color: T.t2, borderRadius: 10, padding: "14px", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>← Back</button>
+                            <button onClick={() => setStep("payment")} style={{ flex: 2, background: T.amber, color: "#000", border: "none", borderRadius: 10, padding: "14px", fontSize: 15, fontWeight: 900, cursor: "pointer", boxShadow: `0 6px 20px ${T.amber}44` }}>Continue to Payment →</button>
+                        </div>
+                    </div>
                     {renderOrderSummary()}
                 </div>
             )}
@@ -263,9 +332,8 @@ export function CheckoutPage({ onBack, onOrderPlaced }) {
                                 </label>
                             ))}
                         </div>
-
                         <div style={{ display: "flex", gap: 12, marginTop: 28 }}>
-                            <button onClick={() => setStep("address")} style={{ flex: 1, background: T.surface, border: `1px solid ${T.border}`, color: T.t2, borderRadius: 10, padding: "14px", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>← Back</button>
+                            <button onClick={() => setStep("delivery")} style={{ flex: 1, background: T.surface, border: `1px solid ${T.border}`, color: T.t2, borderRadius: 10, padding: "14px", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>← Back</button>
                             <button onClick={() => setStep("confirm")} style={{ flex: 2, background: T.amber, color: "#000", border: "none", borderRadius: 10, padding: "14px", fontSize: 15, fontWeight: 900, cursor: "pointer", boxShadow: `0 6px 20px ${T.amber}44` }}>Review Order →</button>
                         </div>
                     </div>
@@ -277,7 +345,28 @@ export function CheckoutPage({ onBack, onOrderPlaced }) {
             {step === "confirm" && (
                 <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 40 }}>
                     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-                        {/* Delivery Address Card */}
+
+                        {/* Stockout Error */}
+                        {stockoutError && (
+                            <div style={{ background: `${T.crimson}11`, border: `2px solid ${T.crimson}44`, borderRadius: 16, padding: 20 }}>
+                                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+                                    <span style={{ fontSize: 24 }}>⚠️</span>
+                                    <div>
+                                        <div style={{ fontSize: 15, fontWeight: 800, color: T.crimson }}>Stock Alert!</div>
+                                        <div style={{ fontSize: 13, color: T.t2, marginTop: 2 }}>
+                                            Sorry, {stockoutError.shopName} just sold out of "{stockoutError.product}".
+                                        </div>
+                                    </div>
+                                </div>
+                                {stockoutError.alternative && (
+                                    <button style={{ background: T.sky, color: "#000", border: "none", borderRadius: 10, padding: "10px 20px", fontSize: 13, fontWeight: 800, cursor: "pointer" }}>
+                                        🔄 {stockoutError.alternative.shopName} has it for ₹{stockoutError.alternative.priceDiff > 0 ? `${stockoutError.alternative.priceDiff} more` : "less"} — Update Cart
+                                    </button>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Address Card */}
                         <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 24 }}>
                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                                 <h3 style={{ fontSize: 16, fontWeight: 800, color: T.t1, margin: 0 }}>📍 Deliver to</h3>
@@ -287,6 +376,18 @@ export function CheckoutPage({ onBack, onOrderPlaced }) {
                             <div style={{ fontSize: 13, color: T.t2, marginTop: 4 }}>{address.line1}{address.line2 ? `, ${address.line2}` : ""}</div>
                             <div style={{ fontSize: 13, color: T.t2 }}>{address.city}, {address.state} - {address.pincode}</div>
                             <div style={{ fontSize: 13, color: T.t3, marginTop: 4 }}>📱 {address.phone}</div>
+                        </div>
+
+                        {/* Delivery Slot Card */}
+                        <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 24 }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                <h3 style={{ fontSize: 16, fontWeight: 800, color: T.t1, margin: 0 }}>🚚 Delivery</h3>
+                                <button onClick={() => setStep("delivery")} style={{ background: "transparent", border: "none", color: T.sky, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>Change</button>
+                            </div>
+                            <div style={{ fontSize: 14, color: T.t1, marginTop: 8, fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}>
+                                <span>{selectedSlot.icon}</span> {selectedSlot.label} — {selectedSlot.desc}
+                                <span style={{ fontFamily: FONT.mono, color: selectedSlot.fee === 0 ? T.emerald : T.t2 }}>{selectedSlot.fee === 0 ? "FREE" : `₹${selectedSlot.fee}`}</span>
+                            </div>
                         </div>
 
                         {/* Payment Card */}
@@ -308,12 +409,14 @@ export function CheckoutPage({ onBack, onOrderPlaced }) {
                             <div key={idx} style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 24 }}>
                                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
                                     <div style={{ fontSize: 14, fontWeight: 800, color: T.t1 }}>📦 Shipment {idx + 1}: {group.shop?.name || "Local Shop"}</div>
-                                    <div style={{ fontSize: 12, color: T.sky, fontWeight: 600 }}>🚚 ~45 min delivery</div>
+                                    <div style={{ fontSize: 12, color: T.sky, fontWeight: 600 }}>{selectedSlot.icon} {selectedSlot.desc}</div>
                                 </div>
                                 {group.items.map((item, i) => (
                                     <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderTop: i > 0 ? `1px solid ${T.border}` : "none" }}>
                                         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                                            <span style={{ fontSize: 20 }}>{item.product?.image || "⚙️"}</span>
+                                            <div style={{ width: 36, height: 36, borderRadius: 8, background: T.surface, overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                                                {item.product?.image ? <img src={item.product.image} style={{ width: "100%", height: "100%", objectFit: "cover" }} alt="" /> : <span style={{ fontSize: 18 }}>📦</span>}
+                                            </div>
                                             <div>
                                                 <div style={{ fontSize: 13, fontWeight: 700, color: T.t1 }}>{item.product?.name}</div>
                                                 <div style={{ fontSize: 12, color: T.t3 }}>Qty: {item.qty}</div>
@@ -330,8 +433,8 @@ export function CheckoutPage({ onBack, onOrderPlaced }) {
                     <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 24, position: "sticky", top: 20, alignSelf: "start" }}>
                         <h3 style={{ fontSize: 18, fontWeight: 900, color: T.t1, margin: "0 0 20px" }}>Order Summary</h3>
                         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: T.t2 }}><span>Items ({totalItems})</span><span style={{ fontFamily: FONT.mono }}>{fmt(totalValue - totalShipping)}</span></div>
-                            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: T.t2 }}><span>Delivery ({Object.keys(cartByShop).length} shipments)</span><span style={{ fontFamily: FONT.mono }}>{fmt(totalShipping)}</span></div>
+                            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: T.t2 }}><span>Items ({totalItems})</span><span style={{ fontFamily: FONT.mono }}>{fmt(totalSubtotal)}</span></div>
+                            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: T.t2 }}><span>Delivery ({Object.keys(cartByShop).length} shipments)</span><span style={{ fontFamily: FONT.mono }}>{totalShipping === 0 ? "FREE" : fmt(totalShipping)}</span></div>
                             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: T.t3 }}><span>GST (inclusive)</span><span style={{ fontFamily: FONT.mono }}>{fmt(gstInclusive)}</span></div>
                             <div style={{ borderTop: `1px solid ${T.border}`, paddingTop: 12, display: "flex", justifyContent: "space-between", fontSize: 20, fontWeight: 900, color: T.t1 }}>
                                 <span>Total</span>
@@ -366,8 +469,11 @@ export function CheckoutPage({ onBack, onOrderPlaced }) {
                 <div style={{ textAlign: "center", padding: "60px 20px" }}>
                     <div style={{ width: 80, height: 80, background: `${T.emerald}22`, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 24px", fontSize: 40, boxShadow: `0 0 40px ${T.emerald}33` }}>✓</div>
                     <div style={{ fontSize: 28, fontWeight: 900, color: T.t1, marginBottom: 8 }}>Order Placed Successfully!</div>
-                    <div style={{ fontSize: 15, color: T.t2, marginBottom: 24 }}>
-                        {orderIds.length} shipment{orderIds.length > 1 ? "s" : ""} from {Object.keys(cartByShop).length || orderIds.length} shop{orderIds.length > 1 ? "s" : ""}
+                    <div style={{ fontSize: 15, color: T.t2, marginBottom: 8 }}>
+                        {orderIds.length} shipment{orderIds.length > 1 ? "s" : ""} • {selectedSlot.icon} {selectedSlot.label}
+                    </div>
+                    <div style={{ fontSize: 13, color: T.t3, marginBottom: 24 }}>
+                        Shop will be notified instantly. Delivery partner will be assigned once the order is packed.
                     </div>
 
                     {/* Order IDs */}
@@ -385,7 +491,7 @@ export function CheckoutPage({ onBack, onOrderPlaced }) {
                         <div style={{ fontSize: 14, fontWeight: 700, color: T.t1, marginBottom: 12 }}>📍 Delivering to</div>
                         <div style={{ fontSize: 13, color: T.t2 }}>{address.name} · {address.phone}</div>
                         <div style={{ fontSize: 13, color: T.t3, marginTop: 4 }}>{address.line1}, {address.city} - {address.pincode}</div>
-                        <div style={{ fontSize: 14, fontWeight: 700, color: T.emerald, marginTop: 12 }}>🚚 Estimated delivery: 2-4 hours</div>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: T.emerald, marginTop: 12 }}>{selectedSlot.icon} Estimated delivery: {selectedSlot.desc}</div>
                     </div>
 
                     <div style={{ display: "flex", justifyContent: "center", gap: 16 }}>
@@ -410,12 +516,13 @@ export function CheckoutPage({ onBack, onOrderPlaced }) {
                                 <span style={{ fontFamily: FONT.mono }}>{fmt(item.listing?.selling_price * item.qty)}</span>
                             </div>
                         ))}
-                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: T.t3, padding: "4px 0" }}>
-                            <span>Delivery</span><span style={{ fontFamily: FONT.mono }}>{fmt(group.shipping)}</span>
-                        </div>
                     </div>
                 ))}
-                <div style={{ borderTop: `1px solid ${T.border}`, paddingTop: 12, display: "flex", justifyContent: "space-between", fontSize: 18, fontWeight: 900, color: T.t1 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: T.t3, padding: "4px 0" }}>
+                    <span>{selectedSlot.icon} {selectedSlot.label}</span>
+                    <span style={{ fontFamily: FONT.mono }}>{selectedSlot.fee === 0 ? "FREE" : `₹${selectedSlot.fee}`}</span>
+                </div>
+                <div style={{ borderTop: `1px solid ${T.border}`, paddingTop: 12, marginTop: 8, display: "flex", justifyContent: "space-between", fontSize: 18, fontWeight: 900, color: T.t1 }}>
                     <span>Total</span>
                     <span style={{ fontFamily: FONT.mono, color: T.amber }}>{fmt(totalValue)}</span>
                 </div>

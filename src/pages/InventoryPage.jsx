@@ -206,6 +206,8 @@ export function InventoryPage({ products, movements, activeShopId, onAdd, onEdit
                                             <div style={{ fontWeight: 700, color: T.t1, fontSize: 13, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.name}</div>
                                             <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>
                                                 <span style={{ fontSize: 11, color: T.t3, fontFamily: FONT.mono }}>{p.sku}</span>
+                                                {p.globalSku && <span style={{ fontSize: 9, fontWeight: 800, color: "#8B5CF6", background: "rgba(139,92,246,0.15)", padding: "1px 6px", borderRadius: 4, display: "inline-flex", alignItems: "center", gap: 3 }}>🌐 Catalog Linked</span>}
+                                                {p.condition !== "New" && p.condition && <span style={{ fontSize: 9, fontWeight: 800, color: T.amber, background: T.amberGlow, padding: "1px 6px", borderRadius: 4 }}>{p.condition}</span>}
                                                 {vehicleMatchStr && (() => {
                                                     const compat = isProductCompatible(p, vehicleMatchStr);
                                                     if (compat === "compatible") return <span style={{ fontSize: 9, fontWeight: 800, color: T.emerald, background: T.emeraldBg, padding: "1px 6px", borderRadius: 4 }}>✅ Compatible</span>;
@@ -275,16 +277,19 @@ export function InventoryPage({ products, movements, activeShopId, onAdd, onEdit
                                                             <div style={{ fontSize: 9, color: T.t4, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Transmission</div>
                                                             <div style={{ fontSize: 14, fontWeight: 800, color: p.transmission ? T.amber : T.t4 }}>{p.transmission || "Not Available"}</div>
                                                         </div>
-                                                        {/* Cross Reference */}
+                                                        {/* Cross Reference / Condition */}
                                                         <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 10, padding: "12px 14px" }}>
-                                                            <div style={{ fontSize: 9, color: T.t4, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Cross Reference</div>
-                                                            <div style={{ fontSize: 12, fontWeight: 700, fontFamily: FONT.mono, color: p.crossRef ? T.t2 : T.t4 }}>{p.crossRef || "Not Available"}</div>
+                                                            <div style={{ fontSize: 9, color: T.t4, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Condition / Ref</div>
+                                                            <div style={{ fontSize: 14, fontWeight: 800, color: p.condition === "New" ? T.emerald : T.amber }}>{p.condition || "New"}</div>
+                                                            <div style={{ fontSize: 11, color: T.t3, marginTop: 2, fontFamily: FONT.mono }}>{p.crossRef || "No Ref."}</div>
                                                         </div>
                                                         {/* Brand + Supplier */}
                                                         <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 10, padding: "12px 14px" }}>
-                                                            <div style={{ fontSize: 9, color: T.t4, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Brand / Supplier</div>
+                                                            <div style={{ fontSize: 9, color: T.t4, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Brand / Warranty</div>
                                                             <div style={{ fontSize: 13, fontWeight: 700, color: T.t1 }}>{p.brand || "—"}</div>
-                                                            <div style={{ fontSize: 11, color: T.t3, marginTop: 2 }}>{p.supplier || "—"}</div>
+                                                            <div style={{ fontSize: 11, color: p.warranty ? T.sky : T.t3, marginTop: 2, display: "flex", gap: 4, alignItems: "center" }}>
+                                                                {p.warranty ? `🛡️ ${p.warranty}` : "No Warranty Info"}
+                                                            </div>
                                                         </div>
                                                         {/* Compatibility Summary */}
                                                         <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 10, padding: "12px 14px" }}>

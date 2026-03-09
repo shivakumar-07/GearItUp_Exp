@@ -1,0 +1,21 @@
+﻿
+[36mvite v7.3.1 
+[32mbuilding client 
+environment for produc
+tion...[36m[39m
+- Use build.rollupOpti
+ons.output.manualChunk
+s to improve 
+chunking: https://roll
+upjs.org/configuration
+-options/#output-manua
+lchunks
+- Adjust chunk size 
+limit for this 
+warning via build.chun
+kSizeWarningLimit.[39
+m
+[32mΓ£ô built in 
+6.63s[39m
+
+

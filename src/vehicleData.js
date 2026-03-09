@@ -209,6 +209,194 @@ export const MODELS = [
     { id: "dmax_rt", mfgId: "isuzu", name: "D-Max Regular", yearFrom: 2014, yearTo: 2025 },
 ];
 
+// ─── VARIANTS TABLE ───
+// Maps modelId → array of variant/trim names (Indian market)
+export const VARIANTS = {
+    // ── Maruti Suzuki ──
+    swift: ["LXI", "VXI", "VXI (O)", "ZXI", "ZXI (O)", "ZXI+", "ZXI+ Dual Tone"],
+    dzire: ["LXI", "VXI", "VXI (O)", "ZXI", "ZXI (O)", "ZXI+", "ZXI+ Dual Tone"],
+    baleno: ["Sigma", "Delta", "Zeta", "Alpha", "Alpha Dual Tone"],
+    wagonr: ["LXI", "VXI", "VXI (O)", "ZXI", "ZXI (O)", "ZXI+ AGS"],
+    alto: ["STD", "LXI", "VXI", "VXI+", "VXI+ AGS"],
+    altok10: ["STD", "LXI", "VXI", "VXI (O)", "VXI+ AGS"],
+    brezza: ["LXI", "VXI", "VXI (O)", "ZXI", "ZXI (O)", "ZXI+", "ZXI+ AT", "ZXI+ Dual Tone"],
+    ertiga: ["LXI", "VXI", "VXI (O)", "ZXI", "ZXI (O)", "ZXI+", "ZXI+ AT"],
+    xl6: ["Zeta", "Zeta AT", "Alpha", "Alpha AT", "Alpha+ AT"],
+    ciaz: ["Sigma", "Delta", "Zeta", "Alpha", "Alpha AT"],
+    ignis: ["Sigma", "Delta", "Zeta", "Alpha", "Alpha Dual Tone"],
+    celerio: ["LXI", "VXI", "VXI (O)", "ZXI", "ZXI (O)", "ZXI+ AGS"],
+    scross: ["Sigma", "Delta", "Zeta", "Alpha"],
+    eeco: ["STD 5-Seater", "STD 7-Seater", "AC 5-Seater", "AC 7-Seater", "Cargo"],
+    grandvitara: ["Sigma", "Delta", "Zeta", "Zeta+", "Alpha", "Alpha+", "Alpha+ Dual Tone"],
+    fronx: ["Sigma", "Delta", "Delta+", "Zeta", "Zeta+", "Alpha", "Alpha Dual Tone"],
+    jimny: ["Zeta", "Zeta AT", "Alpha", "Alpha AT", "Alpha Dual Tone"],
+    invicto: ["Zeta", "Zeta+", "Alpha", "Alpha+"],
+
+    // ── Hyundai ──
+    i20: ["Magna", "Sportz", "Sportz (O)", "Asta", "Asta (O)", "Asta Dual Tone", "N Line N6", "N Line N8", "N Line N8 DCT"],
+    creta: ["E", "EX", "S", "S+", "SX", "SX (O)", "SX Tech", "Knight Edition"],
+    venue: ["E", "S", "S+", "S (O)", "SX", "SX (O)", "SX+ DCT", "N Line N6", "N Line N8"],
+    verna: ["EX", "S", "S+", "SX", "SX (O)", "SX Tech", "SX (O) Turbo DCT"],
+    i10: ["Era", "Magna", "Sportz", "Sportz Dual Tone", "Asta", "Asta AMT"],
+    aura: ["E", "S", "S CNG", "SX", "SX+ AMT"],
+    tucson: ["Platinum", "Platinum AT", "Signature", "Signature AT", "Signature Dual Tone"],
+    alcazar: ["Prestige", "Prestige (O)", "Platinum", "Platinum (O)", "Signature", "Signature (O)"],
+    exter: ["EX", "S", "S+", "SX", "SX (O)", "SX Connect", "SX+ AMT", "Knight Edition"],
+    santro: ["Era", "Magna", "Sportz", "Sportz AMT", "Asta"],
+    xcent: ["E", "S", "SX", "SX (O)", "SX AT"],
+    kona_ev: ["Premium", "Premium Dual Tone"],
+    ioniq5: ["Standard", "Long Range", "Long Range AWD"],
+
+    // ── Tata ──
+    nexon: ["Smart", "Smart+", "Smart+ S", "Pure", "Pure S", "Creative", "Creative+", "Creative+ S", "Fearless", "Fearless+", "Fearless+ S"],
+    punch: ["Pure", "Adventure", "Adventure Rhythm", "Accomplished", "Accomplished Dazzle", "Creative", "Creative i-RA"],
+    harrier: ["Smart", "Pure", "Pure+", "Adventure", "Adventure+", "Fearless", "Fearless+"],
+    safari: ["Smart", "Pure", "Pure+", "Adventure", "Adventure+", "Accomplished", "Accomplished+"],
+    altroz: ["XE", "XE+", "XM", "XM+", "XZ", "XZ+", "XZ+ Luxe", "XZ (O)", "i-Turbo XZ+"],
+    tiago: ["XE", "XM", "XM+", "XT", "XZ", "XZ+", "XZ+ Dual Tone", "NRG"],
+    tigor: ["XE", "XM", "XM+", "XZ", "XZ+", "XZ+ Dual Tone"],
+    nexon_ev: ["Creative", "Creative+", "Fearless", "Fearless+", "Fearless+ LR", "Empowered", "Empowered+", "Empowered+ LR"],
+    tiago_ev: ["XE", "XT", "XZ+", "XZ+ LR", "XZ+ Tech Lux"],
+    curvv: ["Smart", "Pure", "Pure+", "Creative", "Creative+", "Accomplished", "Accomplished+", "Accomplished+ A"],
+    indica: ["LE", "LS", "LX", "DLS", "DLX", "GLS", "GLX"],
+
+    // ── Mahindra ──
+    thar: ["AX (O) STD", "AX (O)", "LX", "LX Hard Top", "LX AT", "LX Diesel AT"],
+    xuv700: ["MX", "AX3", "AX3 (O)", "AX5", "AX5 (O)", "AX5 L", "AX7", "AX7 L", "AX7 L AWD"],
+    xuv300: ["MX1", "MX2", "MX2 (O)", "MX3", "MX3 (O)", "MX3 L"],
+    scorpio: ["Z4", "Z6", "Z8", "Z8 L", "Z8 L Diesel AT", "Z8 L 4x4"],
+    scorpio_cl: ["S3", "S5", "S7", "S9", "S11"],
+    bolero: ["B2", "B4", "B6", "B6 (O)", "B6 Opt", "Neo"],
+    xuv400: ["EC Pro", "EL Pro", "EL Pro L"],
+    marazzo: ["M2", "M4", "M6", "M6+", "M8"],
+    xylo: ["D2", "D2 BS-IV", "D4", "E4", "E6", "E8", "E9"],
+    kuv100: ["K2", "K2+", "K4+", "K6+", "K8"],
+
+    // ── Toyota ──
+    innova: ["G", "GX", "VX", "ZX", "ZX AT", "Touring Sport"],
+    innova_hycross: ["G", "GX", "VX", "ZX", "ZX (O)"],
+    fortuner: ["4x2 MT", "4x2 AT", "4x4 MT", "4x4 AT", "Legender 4x2 AT", "Legender 4x4 AT"],
+    glanza: ["E", "S", "S AMT", "G", "G AMT"],
+    urban_cruiser: ["E", "S", "S+", "G", "V"],
+    hilux: ["STD MT", "High MT", "High AT", "4x4 MT", "4x4 AT"],
+    etios: ["J", "G", "G SP", "V", "VX", "VXD", "GD", "GD SP"],
+    camry: ["Hybrid"],
+    vellfire: ["Executive Lounge", "HV Executive Lounge"],
+    land_cruiser: ["LC300 GX-R", "LC300 VX-R", "LC300 ZX"],
+
+    // ── Honda ──
+    city: ["V", "V MT", "VX", "VX MT", "ZX", "ZX MT", "e:HEV V", "e:HEV VX", "e:HEV ZX"],
+    amaze: ["E", "E MT", "S", "S MT", "VX", "VX CVT"],
+    elevate: ["SV", "V", "VX", "ZX"],
+    wrv: ["S", "V", "VX", "Edge Edition"],
+    jazz: ["S", "SV", "V", "VX"],
+    civic: ["V", "V CVT", "VX", "VX CVT", "ZX CVT"],
+    crv: ["2WD", "2WD AT", "AWD", "AWD AT"],
+    brv: ["S MT", "S CVT", "V MT", "V CVT", "VX CVT"],
+
+    // ── Kia ──
+    seltos: ["HTE", "HTK", "HTK+", "HTX", "HTX+", "GTX", "GTX+", "GTX+ AT", "X-Line"],
+    sonet: ["HTE", "HTK", "HTK+", "HTX", "HTX+", "GTX", "GTX+", "GTX+ AT"],
+    carens: ["Premium", "Prestige", "Prestige+", "Luxury", "Luxury+"],
+    ev6: ["GT Line RWD", "GT Line AWD", "GT AWD"],
+    carnival: ["Premium 7-Seater", "Premium 8-Seater", "Prestige", "Limousine", "Limousine+"],
+    ev9: ["GT Line", "GT Line AWD"],
+
+    // ── MG ──
+    hector: ["Style", "Super", "Smart", "Sharp", "Sharp Pro", "Savvy", "Savvy Pro"],
+    astor: ["Style", "Super", "Smart", "Sharp", "Sharp Pro", "Savvy"],
+    zsev: ["Excite", "Excite Pro", "Exclusive", "Exclusive Pro"],
+    gloster: ["Super", "Smart", "Sharp", "Savvy"],
+    comet: ["Pace", "Play"],
+    hector_plus: ["Style", "Super", "Smart", "Sharp", "Sharp Pro", "Savvy"],
+
+    // ── Skoda ──
+    kushaq: ["Active", "Ambition", "Style", "Style AT", "Monte Carlo", "Monte Carlo AT"],
+    slavia: ["Active", "Ambition", "Style", "Style AT", "Monte Carlo", "Monte Carlo AT"],
+    superb: ["Ambition", "Style", "Sportline", "L&K"],
+    rapid: ["Rider", "Rider+", "Ambition", "Style", "Monte Carlo"],
+    octavia: ["Style", "Style AT", "L&K", "L&K AT", "RS"],
+    kodiaq: ["Style", "Style AT", "Sportline", "L&K"],
+
+    // ── Volkswagen ──
+    taigun: ["Comfortline", "Highline", "Highline AT", "Topline", "Topline AT", "GT", "GT AT"],
+    virtus: ["Comfortline", "Highline", "Highline AT", "Topline", "Topline AT", "GT", "GT+ DSG"],
+    polo: ["Trendline", "Comfortline", "Highline", "Highline+", "GT TSI"],
+    vento: ["Trendline", "Comfortline", "Highline", "Highline+"],
+    tiguan: ["Elegance", "Elegance AT", "Exclusive Edition"],
+
+    // ── Renault ──
+    kwid: ["RXE", "RXL", "RXT", "RXT (O)", "Climber", "Climber AMT"],
+    triber: ["RXE", "RXL", "RXT", "RXZ", "RXZ AMT", "RXZ Dual Tone"],
+    kiger: ["RXE", "RXL", "RXT", "RXT (O)", "RXZ", "RXZ AMT", "RXZ Turbo"],
+    duster: ["RXE", "RXS", "RXS (O)", "RXZ", "RXZ AWD"],
+
+    // ── Nissan ──
+    magnite: ["XE", "XL", "XV", "XV Premium", "XV Premium (O)", "XV Premium AMT"],
+    kicks: ["XE", "XL", "XV", "XV Pre", "XV Pre (O)"],
+    xtrail: ["X-Tremer", "X-Tremer e-POWER"],
+
+    // ── Ford ──
+    ecosport: ["Ambiente", "Trend", "Trend+", "Titanium", "Titanium+", "S", "Thunder"],
+    endeavour: ["Trend", "Titanium", "Titanium+", "Sport"],
+    figo: ["Ambiente", "Trend", "Titanium", "Titanium Blu", "Titanium+"],
+    aspire: ["Ambiente", "Trend", "Trend+", "Titanium", "Titanium+"],
+
+    // ── Chevrolet ──
+    beat: ["PS", "LS", "LT", "LTZ"],
+    cruze: ["LS", "LT", "LTZ", "LTZ AT"],
+    enjoy: ["LS 7-Seater", "LS 8-Seater", "LT 7-Seater", "LTZ 7-Seater"],
+    tavera: ["LS 7-Seater", "LS 9-Seater", "LT L 7-Seater", "LT L 9-Seater"],
+
+    // ── BMW ──
+    "3series": ["320i Sport", "320d Sport", "320d Luxury", "320Ld Luxury", "330i Sport", "330i M Sport", "M340i"],
+    "5series": ["520d Luxury", "520d M Sport", "530d M Sport", "530i Sport", "530i M Sport"],
+    x1: ["sDrive18i", "sDrive18d", "sDrive20d", "sDrive20d M Sport", "xDrive20d"],
+    x3: ["xDrive20d Luxury", "xDrive20d M Sport", "xDrive30d M Sport", "M40i"],
+    x5: ["xDrive30d", "xDrive30d M Sport", "xDrive40i M Sport", "M50i"],
+    "2series": ["220i Sport", "220i M Sport", "220d Sport", "220d M Sport"],
+
+    // ── Mercedes-Benz ──
+    aclass: ["A 200", "A 200d", "A 35 AMG", "A 45 S AMG"],
+    cclass: ["C 200", "C 200d", "C 220d", "C 300d", "C 300d AMG Line", "C 43 AMG"],
+    eclass: ["E 200", "E 200d", "E 220d", "E 350d", "E 350d AMG Line", "E 53 AMG"],
+    gle: ["GLE 300d", "GLE 300d 4MATIC", "GLE 450 4MATIC", "AMG GLE 53 4MATIC+"],
+    glc: ["GLC 200", "GLC 220d", "GLC 220d 4MATIC", "GLC 300 4MATIC", "AMG GLC 43 4MATIC"],
+    gla: ["GLA 200", "GLA 200d", "GLA 220d 4MATIC", "AMG GLA 35 4MATIC"],
+    glb: ["GLB 200", "GLB 220d", "GLB 220d 4MATIC"],
+
+    // ── Audi ──
+    a4: ["Premium", "Premium Plus", "Technology", "S Line"],
+    a6: ["Premium Plus", "Technology", "Technology (O)"],
+    q3: ["Premium Plus", "Technology", "Sportback"],
+    q5: ["Premium Plus", "Technology"],
+    q7: ["Premium Plus", "Technology", "Bold Edition"],
+    a3: ["Premium Plus", "Technology", "35 TFSI"],
+
+    // ── Jeep ──
+    compass: ["Sport", "Longitude", "Longitude+", "Limited", "Limited (O)", "Model S", "Trailhawk"],
+    meridian: ["Limited", "Limited (O)", "Overland"],
+    wrangler: ["Sport", "Sahara", "Rubicon"],
+    grand_cherokee: ["Limited", "Overland", "Summit Reserve", "Trailhawk"],
+
+    // ── Volvo ──
+    xc40: ["B4 Momentum", "B4 Inscription", "B4 R-Design", "B4 Ultimate", "Recharge Pure Electric"],
+    xc60: ["B5 Momentum", "B5 Inscription", "B5 R-Design", "B6 Inscription", "B6 R-Design"],
+    xc90: ["B5 Momentum", "B5 Inscription", "B6 Inscription", "B6 R-Design"],
+    s60: ["B3 Momentum", "B4 Inscription", "B4 R-Design", "T8 Inscription"],
+    s90: ["B5 Momentum", "B5 Inscription", "B6 Inscription", "T8 Inscription"],
+
+    // ── Isuzu ──
+    dmax: ["Hi-Lander MT", "Hi-Lander AT", "Z Prestige MT", "Z Prestige AT"],
+    mu_x: ["4x2 MT", "4x2 AT", "4x4 AT"],
+    dmax_rt: ["Cab Chassis", "Standard", "High Ride"],
+};
+
+// ─── UTILITY: Get variants for a model ───
+export function getVariantsForModel(modelId) {
+    return VARIANTS[modelId] || [];
+}
+
 // ─── UTILITY: Get years for a model ───
 export function getYearsForModel(modelId) {
     const model = MODELS.find(m => m.id === modelId);

@@ -15,7 +15,7 @@ function saveRecent(term) {
   try { localStorage.setItem(RECENT_KEY, JSON.stringify(list.slice(0, MAX_RECENT))); } catch { }
 }
 
-export function SearchBar({ onSelectProduct }) {
+export function SearchBar({ onSelectProduct, onOpenVehicleSelector }) {
   const { selectedVehicle, products, shops } = useStore();
   const [query, setQuery] = useState("");
   const [focused, setFocused] = useState(false);
@@ -23,7 +23,7 @@ export function SearchBar({ onSelectProduct }) {
 
   useEffect(() => { setRecentSearches(getRecent()); }, [focused]);
 
-  // Derive results using our mocked logic engine
+  // Derive results using our engine
   const results = useMemo(() => {
     return searchEngine(query, products, shops, selectedVehicle);
   }, [query, products, shops, selectedVehicle]);
@@ -44,6 +44,28 @@ export function SearchBar({ onSelectProduct }) {
 
   return (
     <div style={{ position: "relative", width: "100%", maxWidth: 640 }}>
+
+      {/* ── Vehicle Context Badge (above search) ── */}
+      {selectedVehicle && (
+        <div
+          onClick={() => onOpenVehicleSelector && onOpenVehicleSelector()}
+          style={{
+            display: "inline-flex", alignItems: "center", gap: 8,
+            background: `${T.emerald}18`, border: `1px solid ${T.emerald}44`,
+            borderRadius: 99, padding: "5px 14px 5px 10px", marginBottom: 10,
+            cursor: "pointer", transition: "all 0.2s"
+          }}
+        >
+          <span style={{ fontSize: 14 }}>🚗</span>
+          <span style={{ fontSize: 12, fontWeight: 800, color: T.emerald }}>
+            {selectedVehicle.brand} {selectedVehicle.model} {selectedVehicle.year}
+            {selectedVehicle.variant ? ` ${selectedVehicle.variant}` : ""}
+            {selectedVehicle.fuel ? ` ${selectedVehicle.fuel}` : ""}
+          </span>
+          <span style={{ fontSize: 10, color: T.t3, marginLeft: 4 }}>✕</span>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit}>
         <div
           style={{
@@ -64,7 +86,9 @@ export function SearchBar({ onSelectProduct }) {
             onChange={e => setQuery(e.target.value)}
             onFocus={() => setFocused(true)}
             onBlur={() => setTimeout(() => setFocused(false), 200)}
-            placeholder="Search for parts, brands, categories or shops..."
+            placeholder={selectedVehicle
+              ? `Search parts for ${selectedVehicle.brand} ${selectedVehicle.model}${selectedVehicle.variant ? ` ${selectedVehicle.variant}` : ''}...`
+              : "Search 'brake pads for Honda City 2019 petrol'..."}
             style={{
               background: "transparent",
               border: "none",
@@ -88,7 +112,7 @@ export function SearchBar({ onSelectProduct }) {
         </div>
       </form>
 
-      {/* AUTOCOMPLETE DROPDOWN */}
+      {/* ══ AUTOCOMPLETE DROPDOWN ══ */}
       {focused && (query.length >= 2 || recentSearches.length > 0) && (
         <div style={{
           position: "absolute",
@@ -106,7 +130,32 @@ export function SearchBar({ onSelectProduct }) {
         }}>
           <div style={{ overflowY: "auto", padding: 12, display: "flex", flexDirection: "column", gap: 12 }}>
 
-            {/* Recent Searches */}
+            {/* ── Parsed Vehicle Detection Banner ── */}
+            {query.length >= 2 && results.parsedVehicle && !selectedVehicle && (
+              <div
+                onClick={() => {
+                  // Auto-select the parsed vehicle
+                  // This would need a store action, but for now show the suggestion
+                }}
+                style={{
+                  background: `${T.sky}14`, border: `1px solid ${T.sky}44`,
+                  borderRadius: 10, padding: "10px 14px",
+                  display: "flex", alignItems: "center", gap: 10
+                }}
+              >
+                <span style={{ fontSize: 16 }}>💡</span>
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: T.sky }}>
+                    Detected: {results.parsedVehicle.brand} {results.parsedVehicle.model} {results.parsedVehicle.year}
+                  </div>
+                  <div style={{ fontSize: 11, color: T.t3 }}>
+                    Showing compatible parts first
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ── Recent Searches ── */}
             {query.length < 2 && recentSearches.length > 0 && (
               <div>
                 <div style={{ fontSize: 11, color: T.t3, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", padding: "0 8px 8px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -136,31 +185,51 @@ export function SearchBar({ onSelectProduct }) {
 
             {query.length >= 2 && hasResults && (
               <>
-                {/* Products */}
+                {/* ── Products ── */}
                 {results.products.length > 0 && (
                   <div>
-                    <div style={{ fontSize: 11, color: T.t3, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", padding: "0 8px 8px" }}>Products {selectedVehicle && " (Compatible)"}</div>
+                    <div style={{ fontSize: 11, color: T.t3, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", padding: "0 8px 8px" }}>
+                      Products {selectedVehicle && " (Fitment Filtered)"}
+                    </div>
                     {results.products.map(p => (
                       <div
                         key={p.product.id}
                         onClick={() => { saveRecent(query.trim()); onSelectProduct && onSelectProduct(p); }}
-                        style={{ padding: "8px 10px", borderRadius: 8, cursor: "pointer", display: "flex", gap: 12, alignItems: "center", transition: "all 0.1s" }}
+                        style={{ padding: "10px 10px", borderRadius: 8, cursor: "pointer", display: "flex", gap: 12, alignItems: "center", transition: "all 0.1s" }}
                         className="mp-dropdown-hover"
                       >
-                        <div style={{ width: 36, height: 36, borderRadius: 6, background: T.surface, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>
-                          {p.product.image || "📦"}
+                        <div style={{ width: 40, height: 40, borderRadius: 8, background: T.surface, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0, overflow: "hidden" }}>
+                          {p.product.image ? <img src={p.product.image} style={{ width: "100%", height: "100%", objectFit: "cover" }} alt="" /> : "📦"}
                         </div>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontSize: 13, fontWeight: 700, color: T.t1 }}>{p.product.name}</div>
-                          <div style={{ fontSize: 11, color: T.t3 }}>Brand: {p.product.brand} · {p.shopCount} Sellers</div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: T.t1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.product.name}</div>
+                            {p.isCompatible && (
+                              <span style={{
+                                background: p.fitmentType === "universal" ? `${T.sky}22` : `${T.emerald}22`,
+                                color: p.fitmentType === "universal" ? T.sky : T.emerald,
+                                fontSize: 9, fontWeight: 900, padding: "2px 6px",
+                                borderRadius: 4, textTransform: "uppercase", letterSpacing: "0.05em", whiteSpace: "nowrap"
+                              }}>
+                                {p.fitmentType === "universal" ? "UNIVERSAL" : "✓ EXACT FIT"}
+                              </span>
+                            )}
+                          </div>
+                          <div style={{ fontSize: 11, color: T.t3, marginTop: 2 }}>
+                            {p.product.brand} · {p.shopCount} Seller{p.shopCount > 1 ? "s" : ""}
+                            {p.fastestEta && <> · <span style={{ color: T.emerald }}>⚡ {p.fastestEta.label}</span></>}
+                          </div>
                         </div>
-                        <div style={{ fontSize: 13, fontWeight: 800, color: T.sky, fontFamily: FONT.mono }}>₹{p.bestPrice}</div>
+                        <div style={{ textAlign: "right", flexShrink: 0 }}>
+                          <div style={{ fontSize: 14, fontWeight: 800, color: T.amber, fontFamily: FONT.mono }}>₹{p.bestPrice}</div>
+                          {p.shopCount > 1 && <div style={{ fontSize: 10, color: T.t3 }}>{p.shopCount} offers</div>}
+                        </div>
                       </div>
                     ))}
                   </div>
                 )}
 
-                {/* Categories & Shops */}
+                {/* ── Categories & Shops ── */}
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                   {results.categories.length > 0 && (
                     <div>

@@ -22,6 +22,9 @@ import { MarketplaceHome } from "./marketplace/pages/MarketplaceHome";
 import { ProductDetailsPage } from "./marketplace/pages/ProductDetailsPage";
 import { CheckoutPage } from "./marketplace/pages/CheckoutPage";
 import { OrderTrackingPage } from "./marketplace/pages/OrderTrackingPage";
+import { GlobalCatalogPage } from "./marketplace/pages/GlobalCatalogPage";
+import { BrandCatalogPage } from "./marketplace/pages/BrandCatalogPage";
+import { AdminPage } from "./marketplace/pages/AdminPage";
 import { CartDrawer } from "./marketplace/components/CartDrawer";
 import { PricingPage } from "./pages/PricingPage";
 
@@ -30,6 +33,7 @@ const NAV_ITEMS = [
   { key: "inventory", icon: "⬡", label: "Inventory", shortcut: "I" },
   { key: "pos", icon: "🧾", label: "POS Billing", shortcut: "P" },
   { key: "parties", icon: "👥", label: "Parties", shortcut: "A" },
+  { key: "workshop", icon: "🔧", label: "Workshop", shortcut: "W" },
   { key: "history", icon: "⊞", label: "History", shortcut: "H" },
   { key: "reports", icon: "📊", label: "Reports", shortcut: "R" },
   { key: "orders", icon: "◎", label: "Orders", shortcut: "O" },
@@ -242,7 +246,7 @@ export default function App() {
         <div style={{ paddingLeft: 68 }}>
           {renderMpPage()}
         </div>
-        <CartDrawer />
+        <CartDrawer onCheckout={() => setMpPage("checkout")} />
 
         {/* LEFT SIDE PANEL */}
         {(() => {
@@ -270,14 +274,68 @@ export default function App() {
                 </button>
               ))}
               <div style={{ flex: 1 }} />
-              <button onClick={() => setAppMode("shopOwner")} title="Switch to Shop Owner"
-                style={{ width: 58, height: 50, borderRadius: 10, border: "none", cursor: "pointer", background: "#4F46E5", color: "#fff", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 2, marginBottom: 12, boxShadow: "0 4px 16px rgba(79,70,229,0.4)", padding: "4px 0" }}>
-                <span style={{ fontSize: 16 }}>🔄</span>
-                <span style={{ fontSize: 7, fontWeight: 700, letterSpacing: "0.02em" }}>Shop</span>
-              </button>
+              {/* Mode Switcher */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 3, marginBottom: 10, width: 58 }}>
+                <div style={{ fontSize: 7, color: T.t4, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", textAlign: "center", marginBottom: 2 }}>Switch</div>
+                {[
+                  { mode: "shopOwner", icon: "🏠", label: "Shop", color: T.amber },
+                  { mode: "admin", icon: "🛡️", label: "Admin", color: "#7C3AED" },
+                ].map(m => (
+                  <button key={m.mode} onClick={() => setAppMode(m.mode)} title={`Switch to ${m.label}`}
+                    style={{
+                      width: 58, height: 36, borderRadius: 8, border: "none", cursor: "pointer",
+                      background: `${m.color}22`, color: m.color,
+                      display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
+                      fontSize: 7, fontWeight: 700, letterSpacing: "0.02em",
+                      transition: "all 0.15s", padding: 0,
+                    }} className="btn-hover">
+                    <span style={{ fontSize: 13 }}>{m.icon}</span>{m.label}
+                  </button>
+                ))}
+              </div>
             </div>
           );
         })()}
+      </>
+    );
+  }
+
+  // ========== ADMIN CONSOLE ==========
+  if (appMode === "admin") {
+    return (
+      <>
+        <div style={{ paddingLeft: 68 }}>
+          <AdminPage onViewProduct={(id) => { setMpPdpId(id); setAppMode("marketplace"); }} />
+        </div>
+        {/* LEFT SIDE PANEL */}
+        <div style={{
+          position: "fixed", left: 0, top: 0, bottom: 0, width: 68, zIndex: 400,
+          background: `${T.surface}ee`, backdropFilter: "blur(12px)", borderRight: `1px solid ${T.border}`,
+          display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 20, gap: 4,
+        }}>
+          <div style={{ width: 40, height: 40, borderRadius: 12, background: `linear-gradient(135deg, #4F46E5, #7C3AED)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, boxShadow: "0 4px 16px rgba(79,70,229,0.4)", marginBottom: 12 }}>🛡️</div>
+          <div style={{ fontSize: 7, color: "#A78BFA", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.08em" }}>Admin</div>
+          <div style={{ flex: 1 }} />
+          {/* Mode Switcher */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 3, marginBottom: 10, width: 58 }}>
+            <div style={{ fontSize: 7, color: T.t4, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", textAlign: "center", marginBottom: 2 }}>Switch</div>
+            {[
+              { mode: "marketplace", icon: "🛒", label: "Market", color: T.emerald },
+              { mode: "shopOwner", icon: "🏠", label: "Shop", color: T.amber },
+            ].map(m => (
+              <button key={m.mode} onClick={() => setAppMode(m.mode)} title={`Switch to ${m.label}`}
+                style={{
+                  width: 58, height: 36, borderRadius: 8, border: "none", cursor: "pointer",
+                  background: `${m.color}22`, color: m.color,
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
+                  fontSize: 7, fontWeight: 700, letterSpacing: "0.02em",
+                  transition: "all 0.15s", padding: 0,
+                }} className="btn-hover">
+                <span style={{ fontSize: 13 }}>{m.icon}</span>{m.label}
+              </button>
+            ))}
+          </div>
+        </div>
       </>
     );
   }
@@ -295,7 +353,7 @@ export default function App() {
     if (page === "pos") return <POSBillingPage products={products} activeShopId={activeShopId} onMultiSale={handleMultiItemSale} toast={toast} />;
     if (page === "history") return <HistoryPage movements={movements} activeShopId={activeShopId} />;
     if (page === "reports") return <ReportsPage movements={movements} products={products} activeShopId={activeShopId} receipts={receipts} saveReceipts={saveReceipts} onPaymentReceipt={handlePaymentReceipt} toast={toast} />;
-    if (page === "orders") return <OrdersPage products={products} activeShopId={activeShopId} onSale={handleSale} toast={toast} />;
+    if (page === "orders") return <OrdersPage />;
     if (page === "parties") return <PartiesPage parties={parties} movements={movements} vehicles={vehicles} activeShopId={activeShopId} onSaveParty={(p) => { const exists = (parties || []).find(x => x.id === p.id); saveParties(exists ? parties.map(x => x.id === p.id ? p : x) : [...(parties || []), p]); logAudit(exists ? "PARTY_UPDATED" : "PARTY_CREATED", "party", p.id, p.name); }} onSaveVehicle={(v) => { const exists = (vehicles || []).find(x => x.id === v.id); saveVehicles(exists ? vehicles.map(x => x.id === v.id ? v : x) : [...(vehicles || []), v]); }} toast={toast} />;
     if (page === "workshop") return <WorkshopPage jobCards={jobCards} vehicles={vehicles} parties={parties} products={products} activeShopId={activeShopId} onSaveJobCard={(jc) => { const exists = (jobCards || []).find(x => x.id === jc.id); saveJobCards(exists ? jobCards.map(x => x.id === jc.id ? jc : x) : [...(jobCards || []), jc]); logAudit(exists ? "JOB_CARD_UPDATED" : "JOB_CARD_CREATED", "job_card", jc.id, `${jc.jobNumber} — ${jc.status}`); }} toast={toast} />;
   };
@@ -305,7 +363,7 @@ export default function App() {
       <style>{GLOBAL_CSS}</style>
 
       {/* TOPBAR */}
-      <div style={{ height: 56, background: T.surface, borderBottom: `1px solid ${T.border}`, display: "flex", alignItems: "center", padding: "0 20px", position: "sticky", top: 0, zIndex: 500, gap: 10 }}>
+      <div style={{ height: 56, background: T.surface, borderBottom: `1px solid ${T.border}`, display: "flex", alignItems: "center", padding: "0 20px", position: "sticky", top: 0, zIndex: 500, gap: 10, boxShadow: `0 4px 24px rgba(0,0,0,0.3), 0 1px 0 ${T.border}` }}>
         {/* Brand — click to edit */}
         {(() => {
           const shop = (shops || []).find(s => s.id === activeShopId) || { name: "My Shop", city: "Location" };
@@ -392,6 +450,7 @@ export default function App() {
           { icon: "🧾", label: "New Sale", page: "pos", color: T.amber },
           { icon: "📥", label: "Purchase", page: "inventory", color: T.sky },
           { icon: "👤", label: "Parties", page: "parties", color: T.emerald },
+          { icon: "🔧", label: "Workshop", page: "workshop", color: T.violet },
           { icon: "📊", label: "Reports", page: "reports", color: T.amber },
           { icon: "📋", label: "History", page: "history", color: T.t2 },
           { icon: "＋", label: "Product", action: () => setPModal({ open: true, product: null }), color: T.amber },
@@ -416,11 +475,25 @@ export default function App() {
               </button>
             ))}
             <div style={{ flex: 1 }} />
-            <button onClick={() => setAppMode("marketplace")} title="Switch to Marketplace"
-              style={{ width: 58, height: 50, borderRadius: 10, border: "none", cursor: "pointer", background: "#4F46E5", color: "#fff", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 2, marginBottom: 12, boxShadow: "0 4px 16px rgba(79,70,229,0.4)", padding: "4px 0" }}>
-              <span style={{ fontSize: 16 }}>🔄</span>
-              <span style={{ fontSize: 7, fontWeight: 700, letterSpacing: "0.02em" }}>Market</span>
-            </button>
+            {/* Mode Switcher */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 3, marginBottom: 10, width: 58 }}>
+              <div style={{ fontSize: 7, color: T.t4, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", textAlign: "center", marginBottom: 2 }}>Switch</div>
+              {[
+                { mode: "marketplace", icon: "🛒", label: "Market", color: T.emerald },
+                { mode: "admin", icon: "🛡️", label: "Admin", color: "#7C3AED" },
+              ].map(m => (
+                <button key={m.mode} onClick={() => setAppMode(m.mode)} title={`Switch to ${m.label}`}
+                  style={{
+                    width: 58, height: 36, borderRadius: 8, border: "none", cursor: "pointer",
+                    background: `${m.color}22`, color: m.color,
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
+                    fontSize: 7, fontWeight: 700, letterSpacing: "0.02em",
+                    transition: "all 0.15s", padding: 0,
+                  }} className="btn-hover">
+                  <span style={{ fontSize: 13 }}>{m.icon}</span>{m.label}
+                </button>
+              ))}
+            </div>
           </div>
         );
       })()}

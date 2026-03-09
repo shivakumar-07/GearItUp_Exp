@@ -66,7 +66,7 @@ export function MarketplaceHome() {
             <SearchBar onSelectProduct={(p) => {
               setPdpProductId(p.product.id);
               setPage("pdp");
-            }} />
+            }} onOpenVehicleSelector={() => setVehModalOpen(true)} />
           </div>
 
           {/* Right Actions */}
@@ -82,7 +82,7 @@ export function MarketplaceHome() {
                   {selectedVehicle ? "Vehicle Saved" : "Select Vehicle"}
                 </span>
                 <span style={{ fontSize: 12, fontWeight: 700, color: T.t1 }}>
-                  {selectedVehicle ? `${selectedVehicle.brand} ${selectedVehicle.model}` : "Add for exact fit"}
+                  {selectedVehicle ? `${selectedVehicle.brand} ${selectedVehicle.model}${selectedVehicle.variant ? ` ${selectedVehicle.variant}` : ''}` : "Add for exact fit"}
                 </span>
               </div>
             </div>
@@ -124,7 +124,7 @@ export function MarketplaceHome() {
                 <div style={{ animation: "fadeUp 0.4s ease-out" }}>
                   <div style={{ marginBottom: 32, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
                     <div>
-                      <h1 style={{ fontSize: 28, fontWeight: 900, color: T.t1, margin: "0 0 8px 0" }}>Parts for {selectedVehicle.brand} {selectedVehicle.model}</h1>
+                      <h1 style={{ fontSize: 28, fontWeight: 900, color: T.t1, margin: "0 0 8px 0" }}>Parts for {selectedVehicle.brand} {selectedVehicle.model}{selectedVehicle.variant ? ` ${selectedVehicle.variant}` : ''}</h1>
                       <div style={{ fontSize: 15, color: T.t3 }}>Showing {data.compatibleParts.length} verified compatible parts sorted by lowest price & nearest shops.</div>
                     </div>
                     <div style={{ display: "flex", gap: 8 }}>
@@ -245,7 +245,7 @@ export function MarketplaceHome() {
                       }).map(p => (
                         <div key={p.product.id} style={{ position: "relative" }}>
                           <div style={{ position: "absolute", top: -14, left: "50%", transform: "translateX(-50%)", zIndex: 10, background: T.emerald, color: "#000", padding: "4px 12px", borderRadius: 20, fontSize: 11, fontWeight: 900, fontFamily: FONT.ui, display: "flex", alignItems: "center", gap: 6, boxShadow: `0 4px 12px ${T.emerald}44`, whiteSpace: "nowrap" }}>
-                            <span>✓</span> Exact Fit for {selectedVehicle.brand} {selectedVehicle.model}
+                            <span>✓</span> Exact Fit for {selectedVehicle.brand} {selectedVehicle.model}{selectedVehicle.variant ? ` ${selectedVehicle.variant}` : ''}
                           </div>
                           <ProductCard item={p} onClick={() => { setPdpProductId(p.product.id); setPage("pdp"); }} />
                         </div>

@@ -1,15 +1,16 @@
 import { useState, useMemo } from "react";
 import { T, FONT } from "../../theme";
-import { MANUFACTURERS, getModelsForMfg, getYearsForModel } from "../../vehicleData";
+import { MANUFACTURERS, getModelsForMfg, getYearsForModel, getVariantsForModel } from "../../vehicleData";
 import { useStore } from "../../store";
 
 export function VehicleSelectorModal({ open, onClose }) {
   const { saveVehicle, selectedVehicle: currentVehicle } = useStore();
 
-  // Progressive Disclosure State: Brand → Model → Year
-  const [step, setStep] = useState(1); // 1: Brand, 2: Model, 3: Year
+  // Progressive Disclosure State: Brand → Model → Year → Variant
+  const [step, setStep] = useState(1); // 1: Brand, 2: Model, 3: Year, 4: Variant
   const [selectedBrand, setSelectedBrand] = useState(null);
   const [selectedModel, setSelectedModel] = useState(null);
+  const [selectedYear, setSelectedYear] = useState(null);
   const [brandSearch, setBrandSearch] = useState("");
 
   // Data based on selection
@@ -28,6 +29,11 @@ export function VehicleSelectorModal({ open, onClose }) {
     return getYearsForModel(selectedModel.id);
   }, [selectedModel]);
 
+  const availableVariants = useMemo(() => {
+    if (!selectedModel) return [];
+    return getVariantsForModel(selectedModel.id);
+  }, [selectedModel]);
+
   // Early return AFTER all hooks
   if (!open) return null;
 
@@ -44,13 +50,47 @@ export function VehicleSelectorModal({ open, onClose }) {
   };
 
   const handleSelectYear = (year) => {
+    setSelectedYear(year);
+    // If variants exist for this model, go to step 4; else finish
+    const variants = getVariantsForModel(selectedModel.id);
+    if (variants.length > 0) {
+      setStep(4);
+    } else {
+      // No variants — save without variant
+      const vehicle = {
+        id: `${selectedBrand.id}_${selectedModel.id}_${year}`,
+        brand: selectedBrand.name,
+        model: selectedModel.name,
+        year,
+        type: "Car",
+        variant: null,
+      };
+      saveVehicle(vehicle);
+      resetAndClose();
+    }
+  };
+
+  const handleSelectVariant = (variantName) => {
     const vehicle = {
-      id: `${selectedBrand.id}_${selectedModel.id}_${year}`,
+      id: `${selectedBrand.id}_${selectedModel.id}_${selectedYear}_${variantName.replace(/\s+/g, '_')}`,
       brand: selectedBrand.name,
       model: selectedModel.name,
-      year,
+      year: selectedYear,
       type: "Car",
-      variant: `${selectedModel.name} ${year}`,
+      variant: variantName,
+    };
+    saveVehicle(vehicle);
+    resetAndClose();
+  };
+
+  const handleSkipVariant = () => {
+    const vehicle = {
+      id: `${selectedBrand.id}_${selectedModel.id}_${selectedYear}`,
+      brand: selectedBrand.name,
+      model: selectedModel.name,
+      year: selectedYear,
+      type: "Car",
+      variant: null,
     };
     saveVehicle(vehicle);
     resetAndClose();
@@ -60,6 +100,7 @@ export function VehicleSelectorModal({ open, onClose }) {
     setStep(1);
     setSelectedBrand(null);
     setSelectedModel(null);
+    setSelectedYear(null);
     setBrandSearch("");
     onClose();
   };
@@ -72,16 +113,26 @@ export function VehicleSelectorModal({ open, onClose }) {
   const goBack = () => {
     if (step === 2) { setSelectedBrand(null); setStep(1); }
     if (step === 3) { setSelectedModel(null); setStep(2); }
+    if (step === 4) { setSelectedYear(null); setStep(3); }
   };
 
-  const stepTitle = step === 1 ? "Select Brand" : step === 2 ? `Select Model — ${selectedBrand?.name}` : `Select Year — ${selectedBrand?.name} ${selectedModel?.name}`;
-  const stepSubtitle = step === 1 ? `${MANUFACTURERS.length} brands available` : step === 2 ? `${availableModels.length} models` : `${availableYears.length} years`;
+  const stepTitle = step === 1 ? "Select Brand"
+    : step === 2 ? `Select Model — ${selectedBrand?.name}`
+      : step === 3 ? `Select Year — ${selectedBrand?.name} ${selectedModel?.name}`
+        : `Select Variant — ${selectedModel?.name} ${selectedYear}`;
+
+  const stepSubtitle = step === 1 ? `${MANUFACTURERS.length} brands available`
+    : step === 2 ? `${availableModels.length} models`
+      : step === 3 ? `${availableYears.length} years`
+        : `${availableVariants.length} variants`;
+
+  const STEPS = ["Brand", "Model", "Year", "Variant"];
 
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", animation: "fadeIn 0.2s" }}>
       <div style={{ position: "absolute", inset: 0, background: "rgba(10,15,29,0.8)", backdropFilter: "blur(8px)" }} onClick={resetAndClose} />
 
-      <div style={{ position: "relative", background: T.surface, width: 520, borderRadius: 20, boxShadow: "0 24px 60px rgba(0,0,0,0.6)", border: `1px solid ${T.borderHi}`, overflow: "hidden", display: "flex", flexDirection: "column", maxHeight: "90vh", animation: "scaleIn 0.3s cubic-bezier(0.16,1,0.3,1)" }}>
+      <div style={{ position: "relative", background: T.surface, width: 560, borderRadius: 20, boxShadow: "0 24px 60px rgba(0,0,0,0.6)", border: `1px solid ${T.borderHi}`, overflow: "hidden", display: "flex", flexDirection: "column", maxHeight: "90vh", animation: "scaleIn 0.3s cubic-bezier(0.16,1,0.3,1)" }}>
 
         {/* Header */}
         <div style={{ padding: "20px 24px", borderBottom: `1px solid ${T.border}`, display: "flex", justifyContent: "space-between", alignItems: "center", background: T.card }}>
@@ -101,21 +152,21 @@ export function VehicleSelectorModal({ open, onClose }) {
 
         {/* Progress Steps */}
         <div style={{ display: "flex", gap: 0, padding: "12px 24px", background: T.bg, borderBottom: `1px solid ${T.border}` }}>
-          {["Brand", "Model", "Year"].map((label, i) => {
+          {STEPS.map((label, i) => {
             const stepNum = i + 1;
             const isActive = step === stepNum;
             const isDone = step > stepNum;
-            const val = stepNum === 1 ? selectedBrand?.name : stepNum === 2 ? selectedModel?.name : null;
+            const val = stepNum === 1 ? selectedBrand?.name : stepNum === 2 ? selectedModel?.name : stepNum === 3 ? selectedYear : null;
             return (
-              <div key={label} style={{ flex: 1, display: "flex", alignItems: "center", gap: 8 }}>
-                <div style={{ width: 26, height: 26, borderRadius: "50%", background: isDone ? T.emerald : isActive ? T.amber : T.border, color: isDone || isActive ? "#000" : T.t3, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 900, flexShrink: 0 }}>
+              <div key={label} style={{ flex: 1, display: "flex", alignItems: "center", gap: 6 }}>
+                <div style={{ width: 24, height: 24, borderRadius: "50%", background: isDone ? T.emerald : isActive ? T.amber : T.border, color: isDone || isActive ? "#000" : T.t3, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 900, flexShrink: 0 }}>
                   {isDone ? "✓" : stepNum}
                 </div>
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: isActive ? T.amber : isDone ? T.emerald : T.t4, textTransform: "uppercase", letterSpacing: "0.06em" }}>{label}</div>
-                  {val && <div style={{ fontSize: 11, fontWeight: 800, color: T.t1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{val}</div>}
+                  <div style={{ fontSize: 9, fontWeight: 700, color: isActive ? T.amber : isDone ? T.emerald : T.t4, textTransform: "uppercase", letterSpacing: "0.06em" }}>{label}</div>
+                  {val && <div style={{ fontSize: 10, fontWeight: 800, color: T.t1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{val}</div>}
                 </div>
-                {i < 2 && <div style={{ flex: 1, height: 1, background: isDone ? T.emerald : T.border, margin: "0 6px" }} />}
+                {i < STEPS.length - 1 && <div style={{ flex: 1, height: 1, background: isDone ? T.emerald : T.border, margin: "0 4px" }} />}
               </div>
             );
           })}
@@ -132,7 +183,10 @@ export function VehicleSelectorModal({ open, onClose }) {
                 <div>
                   <div style={{ fontSize: 11, color: T.emerald, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.05em" }}>Current Vehicle</div>
                   <div style={{ fontSize: 16, fontWeight: 800, color: T.t1 }}>{currentVehicle.brand} {currentVehicle.model}</div>
-                  <div style={{ fontSize: 13, color: T.t3 }}>{currentVehicle.year}</div>
+                  <div style={{ fontSize: 13, color: T.t3 }}>
+                    {currentVehicle.year}
+                    {currentVehicle.variant && ` · ${currentVehicle.variant}`}
+                  </div>
                 </div>
               </div>
               <button onClick={removeVehicle} style={{ background: T.surface, border: `1px solid ${T.border}`, color: T.t2, borderRadius: 8, padding: "8px 12px", fontSize: 12, cursor: "pointer", fontWeight: 700 }} className="btn-hover">
@@ -209,6 +263,32 @@ export function VehicleSelectorModal({ open, onClose }) {
                   No years available.
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Step 4: VARIANT Selection */}
+          {step === 4 && (
+            <div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10 }}>
+                {availableVariants.map(v => (
+                  <button
+                    key={v}
+                    onClick={() => handleSelectVariant(v)}
+                    style={{ background: T.bg, border: `1px solid ${T.border}`, color: T.t1, borderRadius: 10, padding: "14px 16px", fontSize: 14, fontWeight: 700, cursor: "pointer", transition: "all 0.15s", textAlign: "left" }}
+                    className="card-hover"
+                  >
+                    <div style={{ fontWeight: 800 }}>{v}</div>
+                  </button>
+                ))}
+              </div>
+              {/* Skip variant option */}
+              <button
+                onClick={handleSkipVariant}
+                style={{ width: "100%", marginTop: 16, background: "transparent", border: `1px dashed ${T.border}`, color: T.t3, borderRadius: 10, padding: "12px", fontSize: 13, cursor: "pointer", fontWeight: 700, transition: "all 0.15s" }}
+                className="btn-hover"
+              >
+                Skip — I don't know the variant
+              </button>
             </div>
           )}
 
